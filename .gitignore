@@ -1,0 +1,4 @@
+consul_data/
+db_data/
+minio_data/
+.env

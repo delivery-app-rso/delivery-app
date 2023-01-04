@@ -1,0 +1,159 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes: 
+      - ./db_data:/var/lib/postdgresql/data 
+
+  consul:
+    image: consul
+    ports:
+      - 8500:8500
+      - 8600:8600/udp
+    command: agent -server -ui -bind 0.0.0.0 -client 0.0.0.0 -bootstrap -bootstrap-expect=1
+    volumes:
+      -  ./consul_data:/consul/data
+
+  minio:
+    image: quay.io/minio/minio
+    ports:
+      - 9000:9000
+      - 9090:9090
+    volumes: 
+      - ./minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
+    command: server /data --console-address ":9090"
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - 8025:8025
+      - 1025:1025
+
+  items:
+    build:
+      context: ${ITEMS_SERVICE_PATH}
+      dockerfile: Dockerfile
+    environment:
+      - KUMULUZEE_ENV_NAME=${ENVIRONMENT}
+      - KUMULUZEE_NAME=${ITEMS_SERVICE_NAME}
+      - KUMULUZEE_SERVER_HTTP_PORT=${ITEMS_SERVICE_PORT}
+      - KUMULUZEE_DATASOURCES0_USERNAME=${POSTGRES_USER}
+      - KUMULUZEE_DATASOURCES0_PASSWORD=${POSTGRES_PASSWORD}
+      - KUMULUZEE_DATASOURCES0_CONNECTIONURL=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - KUMULUZEE_CONFIG_CONSUL_AGENT=${CONSUL_URL}
+    ports:
+      - ${ITEMS_SERVICE_PORT}:${ITEMS_SERVICE_PORT}
+
+  invoices:
+    build:
+      context: ${INVOICES_SERVICE_PATH}
+      dockerfile: Dockerfile
+    environment:
+      - KUMULUZEE_ENV_NAME=${ENVIRONMENT}
+      - KUMULUZEE_NAME=${INVOICES_SERVICE_NAME}
+      - KUMULUZEE_SERVER_HTTP_PORT=${INVOICES_SERVICE_PORT}
+      - KUMULUZEE_DATASOURCES0_USERNAME=${POSTGRES_USER}
+      - KUMULUZEE_DATASOURCES0_PASSWORD=${POSTGRES_PASSWORD}
+      - KUMULUZEE_DATASOURCES0_CONNECTIONURL=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+      - KUMULUZEE_CONFIG_CONSUL_AGENT=${CONSUL_URL}
+    ports:
+      - ${INVOICES_SERVICE_PORT}:${INVOICES_SERVICE_PORT}
+
+  mailing:
+    build:
+      context: ${MAIL_SERVICE_PATH}
+      dockerfile: Dockerfile
+    environment:
+      - KUMULUZEE_ENV_NAME=${ENVIRONMENT}
+      - KUMULUZEE_NAME=${MAIL_SERVICE_NAME}
+      - KUMULUZEE_SERVER_HTTP_PORT=${MAIL_SERVICE_PORT}
+      - KUMULUZEE_DATASOURCES0_USERNAME=${POSTGRES_USER}
+      - KUMULUZEE_DATASOURCES0_PASSWORD=${POSTGRES_PASSWORD}
+      - KUMULUZEE_DATASOURCES0_CONNECTIONURL=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+      - KUMULUZEE_CONFIG_CONSUL_AGENT=${CONSUL_URL}
+    ports:
+      - ${MAIL_SERVICE_PORT}:${MAIL_SERVICE_PORT}
+
+  ratings:
+    build:
+      context: ${RATING_SERVICE_PATH}
+      dockerfile: Dockerfile
+    environment:
+      - KUMULUZEE_ENV_NAME=${ENVIRONMENT}
+      - KUMULUZEE_NAME=${RATING_SERVICE_NAME}
+      - KUMULUZEE_SERVER_HTTP_PORT=${RATING_SERVICE_PORT}
+      - KUMULUZEE_DATASOURCES0_USERNAME=${POSTGRES_USER}
+      - KUMULUZEE_DATASOURCES0_PASSWORD=${POSTGRES_PASSWORD}
+      - KUMULUZEE_DATASOURCES0_CONNECTIONURL=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+      - KUMULUZEE_CONFIG_CONSUL_AGENT=${CONSUL_URL}
+    ports:
+      - ${RATING_SERVICE_PORT}:${RATING_SERVICE_PORT}
+
+  users:
+    build:
+      context: ${USERS_SERVICE_PATH}
+      dockerfile: Dockerfile
+    environment:
+      - KUMULUZEE_ENV_NAME=${ENVIRONMENT}
+      - KUMULUZEE_NAME=${USERS_SERVICE_NAME}
+      - KUMULUZEE_SERVER_HTTP_PORT=${USERS_SERVICE_PORT}
+      - KUMULUZEE_DATASOURCES0_USERNAME=${POSTGRES_USER}
+      - KUMULUZEE_DATASOURCES0_PASSWORD=${POSTGRES_PASSWORD}
+      - KUMULUZEE_DATASOURCES0_CONNECTIONURL=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+      - KUMULUZEE_CONFIG_CONSUL_AGENT=${CONSUL_URL}
+      - KUMULUZEE_RESTCLIENT_REGISTRATIONS0_URL=${REST_CLIENT_MAIL}
+    ports:
+      - ${USERS_SERVICE_PORT}:${USERS_SERVICE_PORT}
+
+  navigation:
+    build:
+      context: ${NAVIGATION_SERVICE_PATH}
+      dockerfile: Dockerfile
+    environment:
+      - KUMULUZEE_ENV_NAME=${ENVIRONMENT}
+      - KUMULUZEE_NAME=${NAVIGATION_SERVICE_NAME}
+      - KUMULUZEE_SERVER_HTTP_PORT=${NAVIGATION_SERVICE_PORT}
+      - KUMULUZEE_DATASOURCES0_USERNAME=${POSTGRES_USER}
+      - KUMULUZEE_DATASOURCES0_PASSWORD=${POSTGRES_PASSWORD}
+      - KUMULUZEE_DATASOURCES0_CONNECTIONURL=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+      - KUMULUZEE_CONFIG_CONSUL_AGENT=${CONSUL_URL}
+    ports:
+      - ${NAVIGATION_SERVICE_PORT}:${NAVIGATION_SERVICE_PORT}
+
+  delivery:
+    build:
+      context: ${DELIVERY_SERVICE_PATH}
+      dockerfile: Dockerfile
+    environment:
+      - KUMULUZEE_ENV_NAME=${ENVIRONMENT}
+      - KUMULUZEE_NAME=${DELIVERY_SERVICE_NAME}
+      - KUMULUZEE_SERVER_HTTP_PORT=${DELIVERY_SERVICE_PORT}
+      - KUMULUZEE_DATASOURCES0_USERNAME=${POSTGRES_USER}
+      - KUMULUZEE_DATASOURCES0_PASSWORD=${POSTGRES_PASSWORD}
+      - KUMULUZEE_DATASOURCES0_CONNECTIONURL=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - KUMULUZEE_CONFIG_CONSUL_AGENT=${CONSUL_URL}
+      - KUMULUZEE_RESTCLIENT_REGISTRATIONS0_URL=${REST_CLIENT_MAIL}
+    ports:
+      - ${DELIVERY_SERVICE_PORT}:${DELIVERY_SERVICE_PORT}
+
+volumes:
+  postgres:
+    driver: local
+  minio:
+    driver: local
+  consul:
+    driver: local
+
+networks:
+  default:
+    name: rso
+    external: true
